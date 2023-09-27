@@ -1,0 +1,87 @@
+---
+title: "p8105_hw2_jl6647"
+author: "Jiatong LI"
+date: "2023-09-27"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+## HW2 Problem 2
+
+### Read and clean Mr. Trash Wheel's data
+
+* specify the sheet in the Excel file and to omit non-data entries (rows with notes / figures; columns containing notes) using arguments in read_excel
+* use reasonable variable names 
+* omit rows that do not include dumpster-specific data
+
+### Mr. Trash Wheel
+```{r}
+trash_df = read_excel(
+  "202207 Trash Wheel Collection Data.xlsx",
+  range = "A2:N549",
+  sheet = "Mr. Trash Wheel"
+) |> 
+  janitor::clean_names() |>
+  mutate(year = as.integer(year)) |> 
+  mutate(homes_powered = weight_tons*500/30) |> 
+  mutate(wheel_type = "mr") |> 
+  drop_na(dumpster)
+
+```
+### Professor Trash Wheel
+```{r}
+professor_df = read_excel(
+  "202207 Trash Wheel Collection Data.xlsx",
+  sheet = "Professor Trash Wheel",
+  range = "A2:M96"
+) |> 
+  janitor::clean_names() |> 
+  drop_na(dumpster) |> 
+  mutate(homes_powered = weight_tons*500/30) |> 
+  mutate(wheel_type = "professor")
+```
+### Gwynnda Trash Wheel
+```{r}
+gwynnda_df = read_excel(
+  "202207 Trash Wheel Collection Data.xlsx",
+  sheet = "Gwynnda Trash Wheel",
+  range = "A2:K109"
+) |> 
+  janitor::clean_names() |> 
+  drop_na(dumpster) |> 
+  mutate(homes_powered = weight_tons*500/30) |> 
+  mutate(wheel_type = "gwynnda")
+```
+
+### Combine datasets together
+
+```{r}
+combined_dataset = bind_rows(trash_df,professor_df,gwynnda_df) |> 
+                   relocate(wheel_type)
+print(combined_dataset)
+```
+
+### Describe the data
+
+The number of observations in the combined dataset: `r nrow(combined_dataset)`
+
+The number of variables in the combined dataset: `r ncol(combined_dataset)`
+
+Names of key variables: `r names(combined_dataset)`
+
+Total weight of trash collected by Professor Trash Wheel: `r sum(professor_df$weight_tons)`
+
+Total number of cigarette butts collected by Gwynnda in July of 2021: `r sum(gwynnda_df$cigarette_butts[which(gwynnda_df$month == "July" & gwynnda_df$year == 2021)])`
+
+
+
+
+
+
