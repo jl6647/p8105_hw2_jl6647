@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(readxl)
+library(dplyr)
 ```
 ## HW2 Problem 2
 
@@ -70,6 +71,9 @@ print(combined_dataset)
 
 ### Describe the data
 
+* Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in the resulting dataset, and give examples of key variables. For available data, what was the total weight of trash collected by Professor Trash Wheel? What was the total number of cigarette butts collected by Gwynnda in July of 2021?
+
+
 The number of observations in the combined dataset: `r nrow(combined_dataset)`
 
 The number of variables in the combined dataset: `r ncol(combined_dataset)`
@@ -80,8 +84,136 @@ Total weight of trash collected by Professor Trash Wheel: `r sum(professor_df$we
 
 Total number of cigarette butts collected by Gwynnda in July of 2021: `r sum(gwynnda_df$cigarette_butts[which(gwynnda_df$month == "July" & gwynnda_df$year == 2021)])`
 
+## HW2 Problem 3
 
+### Import, clean, and tidy the dataset of baseline demographics
 
+* Ensure that sex and APOE4 carrier status are appropriate encoded (i.e. not numeric)
+* Remove any participants who do not meet the stated inclusion criteria (i.e. no MCI at baseline)
 
+```{r}
+baseline_df = 
+  read_csv("data_mci/MCI_baseline.csv",skip = 1) |> 
+  janitor::clean_names() |> 
+  mutate(
+    sex = case_match(
+      sex,
+      1 ~ "Male",
+      0 ~ "Female"),
+    sex = as.factor(sex)) |> 
+  mutate(
+    apoe4 = case_match(
+      apoe4,
+      1 ~ "APOE4 Carrier",
+      0 ~ "APOE4 Non-carrier"),
+    apoe4 = as.factor(apoe4)) 
+  
+mci_baseline = 
+  baseline_df |> 
+  filter(age_at_onset != ".")
+      
+```
+### Discuss important steps in the import process and relevant features of the dataset
+
+* How many participants were recruited, and of these how many develop MCI? 
+
+`r nrow(baseline_df)` participants were recruited.
+
+`r nrow(mci_baseline)` develop MCI.
+
+* What is the average baseline age?
+```{r,echo=FALSE}
+baseline_age =
+  mci_baseline |> 
+  summarise(mean_age = mean(current_age, na.rm = TRUE)) |> 
+  pull(mean_age)
+```
+The average baseline age is `r baseline_age`
+
+* What proportion of women in the study are APOE4 carriers?
+```{r}
+carrier_female = 
+  mci_baseline |> 
+  filter(sex == "Female" & apoe4 == "APOE4 Carrier") |> 
+  count()
+```
+In the study, `r carrier_female/nrow(mci_baseline)` is the proportion of women in the study are APOE4 carriers
+
+### Import, clean, and tidy the dataset of longitudinally observed biomarker values
+```{r,echo=FALSE}
+amy_df = 
+  read_csv("data_mci/mci_amyloid.csv",skip = 1) |> 
+  janitor::clean_names() |> 
+  subset(
+   baseline!="NA" & baseline!="Na"
+  )|>
+  rename(
+  id=study_id,
+  Time_2_years=time_2,
+  Time_4_years=time_4,
+  Time_6_years=time_6,
+  Time_8_years=time_8
+  )
+```
+```{r}
+amy_df
+```
+
+### Comment on the steps on the import process and the features of the dataset
+
+During the import process, data is imported from `mci_amyloid.csv` and participants who have no MCI is removed from baseline column to avoid invalid data. Variable names have been changed to make the data more understandable. To better combine the two datasets of mci_amyloid and mci_baseline, 'study_id' is changed.
+
+`r nrow(read_csv("data_mci/mci_amyloid.csv",skip = 1))` participants were recruited.
+
+`r nrow(amy_df)` participants observed biomarker values.
+
+In the study, `r nrow(amy_df |> subset(Time_2_years!="NA"&Time_4_years!="NA"&Time_6_years!="NA"&Time_8_years!="NA"))/nrow(amy_df) ` is the proportion of participants who successfully completed the whole process.
+
+### Check whether some participants appear in only the baseline or amyloid datasets, and comment on your findings
+```{r,echo=FALSE}
+left_join_dfs =
+  left_join(mci_baseline,amy_df, by = "id")
+
+only_in_baseline_df=
+  left_join_dfs|>
+  subset(
+    is.na(left_join_dfs$baseline))
+```
+There're `r nrow(only_in_baseline_df)` participants appear in only the baseline datasets. 
+```{r}
+only_in_baseline_df
+```
+```{r,echo=FALSE}
+right_join_dfs =
+  right_join(mci_baseline,amy_df, by = "id")
+
+only_in_amy_df=
+  right_join_dfs|>
+  subset(
+    is.na(right_join_dfs$age_at_onset))
+```
+There are `r nrow(only_in_amy_df)` participants appear in only the amyloid datasets.
+```{r}
+only_in_amy_df
+```
+### Combine the demographic and biomarker datasets so that only participants who appear in both datasets are retained, and briefly describe the resulting dataset
+
+```{r,echo=FALSE}
+both_have_df =
+  inner_join(mci_baseline,amy_df,by="id")
+whole_process_df =  
+  both_have_df |> 
+  na.omit(both_have_df)
+```
+As seen in the datasets below, after combination, `r nrow(both_have_df)` participants appear in both two datasets, and only `r nrow(whole_process_df)` participants successfully went through the whole process.
+```{r}
+both_have_df
+whole_process_df
+```
+### Export the result as a CSV to your data directory
+```{r}
+write_csv(both_have_df,"Participants appear in both mci_amyloid and mci_baseline datasets")
+write_csv(whole_process_df,"Participants appear in both datasets and went through the whole process")
+```
 
 
