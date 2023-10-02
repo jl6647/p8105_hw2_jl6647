@@ -1,6 +1,6 @@
 ---
 title: "p8105_hw2_jl6647"
-author: "Jiatong LI"
+author: "Jiatong Li"
 date: "2023-09-27"
 output: github_document
 ---
@@ -14,6 +14,69 @@ library(tidyverse)
 library(readxl)
 library(dplyr)
 ```
+
+### HW2 Problem 1
+
+We clean the 538 `pols` data, which provides information on the number of national politicians who are democratic or republican at any given time. There are some values for which `prez_gop` is `2` -- these are months in which Ford became President following Nixon's resignation. In the new `president` variable created as part of our data cleaning, we code these as `gop` (same as values when `prez_gop` is `1`).
+
+```{r clean_538_pols}
+month_df = 
+  tibble(
+    month_num = 1:12,
+    month_abb = month.abb,
+    month = month.name
+  )
+
+pols = 
+  read_csv("fivethirtyeight_datasets/pols-month.csv") |>
+  separate(mon, into = c("year", "month_num", "day"), convert = TRUE) |>
+  mutate(
+    president = recode(prez_gop, "0" = "dem", "1" = "gop", "2" = "gop")) |>
+  left_join(x = _, y = month_df) |> 
+  select(year, month, everything(), -day, -starts_with("prez")) 
+```
+
+We also clean the 538 `snp` data, which contains information related to Standard & Poor’s stock market index.
+
+```{r clean_538_snp}
+snp = 
+  read_csv("fivethirtyeight_datasets/snp.csv") |>
+  separate(date, into = c("month", "day", "year"), convert = TRUE) |>
+  arrange(year, month) |>
+  mutate(month = month.name[month]) |>
+  select(year, month, close) 
+```
+
+Finally, we tidy the `unemployment` data so that it can be merged with the `pols` and `snp` datasets.
+
+```{r clean_538_unemp}
+unemployment = 
+  read_csv("fivethirtyeight_datasets/unemployment.csv") |>
+  rename(year = Year) |>
+  pivot_longer(
+    Jan:Dec, 
+    names_to = "month_abb",
+    values_to = "unemployment"
+  ) |> 
+  left_join(x = _, y = month_df) |> 
+  select(year, month, unemployment)
+```
+
+Now we merge the three datasets!
+
+```{r merge_538}
+data_538 = 
+  left_join(pols, snp) |>
+  left_join(x = _, y = unemployment)
+
+str(data_538)
+```
+
+Notice that there are some `NA` values in the `close` and `unemployment` variables, which indicate that the value of these variables is missing at those locations.
+
+Let's talk about the 538 datasets. The `pols` data has `r nrow(pols)` observations and `r ncol(pols)` variables and tells us about the party affiliation distribution (democrat or republican) for governors and senators for a given year from years `r range(pols$year)[1]` to `r range(pols$year)[2]`. It also tells us whether the sitting president was a democrat or republican. The `snp` data has `r nrow(snp)` observations and `r ncol(snp)` variables, ranging from years `r range(snp$year)[1]` to `r range(snp$year)[2]`. The `unemployment` data has `r nrow(unemployment)` observations and `r ncol(unemployment)` variables ranging from years `r range(unemployment$year)[1]` to `r range(unemployment$year)[2]`. In Januarys in or after 1975 in which a democrat was president, the **average unemployment rate was `r filter(data_538, month == "January", year >= 1975, president == "dem") |> pull(unemployment) |> mean() |> round(2)`**.  The average unemployment rate over the same time period in which a republican was president was `r filter(data_538, month == "January", year >= 1975, president == "gop") |> pull(unemployment) |> mean() |> round(2)`.
+
+
 ## HW2 Problem 2
 
 ### Read and clean Mr. Trash Wheel's data
