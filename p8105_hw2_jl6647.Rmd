@@ -88,8 +88,8 @@ Let's talk about the 538 datasets. The `pols` data has `r nrow(pols)` observatio
 ### Mr. Trash Wheel
 ```{r}
 trash_df = read_excel(
-  "202207 Trash Wheel Collection Data.xlsx",
-  range = "A2:N549",
+  "202309 Trash Wheel Collection Data.xlsx",
+  range = "A2:N586",
   sheet = "Mr. Trash Wheel"
 ) |> 
   janitor::clean_names() |>
@@ -102,9 +102,9 @@ trash_df = read_excel(
 ### Professor Trash Wheel
 ```{r}
 professor_df = read_excel(
-  "202207 Trash Wheel Collection Data.xlsx",
+  "202309 Trash Wheel Collection Data.xlsx",
   sheet = "Professor Trash Wheel",
-  range = "A2:M96"
+  range = "A2:M108"
 ) |> 
   janitor::clean_names() |> 
   drop_na(dumpster) |> 
@@ -114,9 +114,9 @@ professor_df = read_excel(
 ### Gwynnda Trash Wheel
 ```{r}
 gwynnda_df = read_excel(
-  "202207 Trash Wheel Collection Data.xlsx",
+  "202309 Trash Wheel Collection Data.xlsx",
   sheet = "Gwynnda Trash Wheel",
-  range = "A2:K109"
+  range = "A2:L157"
 ) |> 
   janitor::clean_names() |> 
   drop_na(dumpster) |> 
@@ -216,7 +216,7 @@ amy_df =
   Time_4_years=time_4,
   Time_6_years=time_6,
   Time_8_years=time_8
-  )
+  ) 
 ```
 ```{r}
 amy_df
